@@ -922,6 +922,54 @@ programCommand('update_candy_machine')
     saveCache(cacheName, env, cacheContent);
   });
 
+/*-----------------------------------------*
+ *-----BEGIN crossmint customization ------*
+ *-----------------------------------------*/
+programCommand('update_cm_auth_xmint')
+  .option(
+    '-r, --rpc-url <string>',
+    'custom rpc url since this is a heavy command',
+  )
+  .option(
+    '-t, --treasuryWallet <string>',
+    'the sol treasury wallet address'
+  )
+  .option(
+    '-c, --candyMachineId <string>', 
+    'The Candy Machine ID to be updated'
+  )
+  .option(
+    '--new-authority <Pubkey>', 
+    'New Authority. Base58-encoded'
+  )
+  .action(async (directory, cmd) => {
+    const { keypair, env, rpcUrl, treasuryWallet, candyMachineId, newAuthority } = cmd.opts();
+    
+    log.info('---------------------------- Update Authority');
+    log.info('candy machine id: ', candyMachineId);
+
+    const newAuthorityKey = newAuthority ? new PublicKey(newAuthority) : null;
+    const walletKeyPair = loadWalletKey(keypair);
+    const anchorProgram = await loadCandyProgramV2(walletKeyPair, env, rpcUrl);
+    const candyMachine = new PublicKey(candyMachineId);
+
+    if (newAuthorityKey) {
+      const tx = await anchorProgram.rpc.updateAuthority(newAuthorityKey, {
+        accounts: {
+          candyMachine,
+          authority: walletKeyPair.publicKey,
+          wallet: new PublicKey(treasuryWallet),
+        },
+      });
+
+      log.info('transaction id: ', tx);
+      log.info('---------------------------- Completed');
+    }
+  });
+/*-----------------------------------------*
+ *------ END crossmint customization ------*
+ *-----------------------------------------*/
+
 programCommand('set_collection')
   .option(
     '-m, --collection-mint <string>',
